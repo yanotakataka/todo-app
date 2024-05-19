@@ -2,12 +2,14 @@ import React, { useState } from "react";
 import { TodoType } from "../types";
 import { useTodos } from "../hooks/useTodos";
 import { API_URL } from "../constants/URL";
+import { useSocket } from "../provider/socketProvider";
 
 type TodoProps = {
   todo: TodoType;
 };
 
 const Todo = ({ todo }: TodoProps) => {
+  const { socket } = useSocket();
   const [isEditing, setIsEditing] = useState(false);
   const [editText, setEditText] = useState(todo.title);
   const { todos, isLoading, error, mutate } = useTodos();
@@ -16,46 +18,42 @@ const Todo = ({ todo }: TodoProps) => {
     setIsEditing(!isEditing);
 
     if (isEditing) {
-      const response = await fetch(
-        `${API_URL}/editTodo/${todo.id}`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            title: editText,
-            isCompleted: false,
-          }),
-        }
-      );
+      const response = await fetch(`${API_URL}/editTodo/${todo.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: editText,
+          isCompleted: false,
+        }),
+      });
 
       if (response.ok) {
         const editTodo = await response.json();
         const updatedTodos = todos.map((todo: TodoType) =>
           todo.id === editTodo.id ? editTodo : todo
         );
+        socket.emit("send_todo", updatedTodos);
         mutate(updatedTodos);
       }
     }
   };
 
   const handleDelete = async () => {
-    const response = await fetch(
-      `${API_URL}/deleteTodo/${todo.id}`,
-      {
-        method: "DELETE",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await fetch(`${API_URL}/deleteTodo/${todo.id}`, {
+      method: "DELETE",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (response.ok) {
       const deleteTodo = await response.json();
       const deletedTodos = todos.filter(
         (todo: TodoType) => todo.id !== deleteTodo.id
       );
+      socket.emit("send_todo", deletedTodos);
       mutate(deletedTodos);
     }
   };
@@ -76,6 +74,7 @@ const Todo = ({ todo }: TodoProps) => {
       const updatedTodos = todos.map((todo: TodoType) =>
         todo.id === editTodo.id ? editTodo : todo
       );
+      socket.emit("send_todo", updatedTodos);
       mutate(updatedTodos);
     }
   };

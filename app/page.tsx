@@ -2,14 +2,26 @@
 
 import Todo from "./components/Todo";
 import { TodoType } from "./types";
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
 import { useTodos } from "./hooks/useTodos";
 import { API_URL } from "./constants/URL";
+import { useSocket } from "./provider/socketProvider";
 
 export default function Home() {
+  const { socket } = useSocket();
   const { todos, isLoading, error, mutate } = useTodos();
 
   const inputTodo = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    socket.on("send_todo", (todos) => {
+      mutate(todos);
+    });
+
+    return () => {
+      socket.removeListener("send_todo");
+    };
+  }, []);
 
   if (isLoading) {
     return <div>Loading...</div>;
@@ -33,6 +45,7 @@ export default function Home() {
 
     if (response.ok) {
       const newTodo = await response.json();
+      socket.emit("send_todo", [...todos, newTodo]);
       mutate([...todos, newTodo]);
       inputTodo.current!.value = "";
     }
