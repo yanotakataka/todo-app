@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@types/webspeechapi": "^0.0.29",
     "next": "14.2.3",
     "react": "^18",
     "react-dom": "^18",
